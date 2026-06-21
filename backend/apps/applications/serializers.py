@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from apps.accounts.models import User
 from django.db import transaction
 from .models import (
     Application,
@@ -195,10 +196,12 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
             # Create the first status history entry — 'Applied'
             try:
                 applied_status = Status.objects.get(sequence_order=1)
+                request_user = self.context['request'].user
+                changed_by = request_user if isinstance(request_user, User) else None
                 ApplicationStatusHistory.objects.create(
                     application=application,
                     status=applied_status,
-                    changed_by=self.context['request'].user,
+                    changed_by=changed_by,
                 )
             except Status.DoesNotExist:
                 pass

@@ -66,18 +66,25 @@ class IsOwnerOrHRManager(BasePermission):
 
 class IsInterviewParticipantOrHRManager(BasePermission):
     """
-    Grants access to submit an evaluation only if the user
-    is a participant in that interview, or is HR/Admin.
+    Grants access to submit an evaluation only if the user is a
+    participant in the relevant interview, or is HR/Admin.
+
+    This is checked via has_permission (not has_object_permission)
+    because it's used specifically for EvaluationViewSet.create,
+    where there's no Evaluation object yet — the interview is
+    referenced by ID in the request body, not fetched via get_object().
     """
     message = 'Access denied. You must be a participant in this interview to submit an evaluation.'
 
-    def has_object_permission(self, request, view, obj):
+    def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-
-        # HR Managers and Admins can access everything
         if request.user.role and request.user.role.title in ['HR_MANAGER', 'ADMIN']:
             return True
 
-        # Check if the user is a participant in the interview
-        return obj.participants.filter(id=request.user.id).exists()
+        interview_id = request.data.get('interview')
+        if not interview_id:
+            return True  # let serializer validation produce the proper missing-field error
+
+        from apps.interviews.models import Interview
+        return Interview.objects.filter(id=interview_id, participants=request.user).exists()

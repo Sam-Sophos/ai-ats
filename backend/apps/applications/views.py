@@ -7,6 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from celery.result import AsyncResult
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from apps.candidates.authentication import CandidateJWTAuthentication
 
 from .models import Application, ApplicationStatusHistory, Status, AIProcessingLog
 from .serializers import (
@@ -210,8 +212,12 @@ class TaskStatusView(viewsets.ViewSet):
     """
     GET /api/tasks/{task_id}/
     Returns the current status of a Celery background task.
-    Used by the frontend to poll for AI processing completion.
+    Accepts either a recruiter token or a candidate token, since both
+    a recruiter (logging an application manually) and a candidate
+    (applying themselves) need to poll their own submission's progress.
+    Order matters here — CandidateJWTAuthentication must come first.
     """
+    authentication_classes = [CandidateJWTAuthentication, JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def retrieve(self, request, pk=None):

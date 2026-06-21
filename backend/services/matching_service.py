@@ -46,10 +46,19 @@ def match_and_score(application_id: int, extracted_skill_names: list[str]) -> in
         for skill_name in extracted_skill_names:
             if not skill_name or not skill_name.strip():
                 continue
-            skill, created = Skill.objects.get_or_create(
-                skill_name__iexact=skill_name.strip(),
-                defaults={'skill_name': skill_name.strip().title()}
-            )
+            clean_name = skill_name.strip()
+            matches = Skill.objects.filter(skill_name__iexact=clean_name).order_by('id')
+            if matches.exists():
+                skill = matches.first()
+                if matches.count() > 1:
+                    logger.warning(
+                        f'[MatchingService] Multiple Skill rows exist for '
+                        f'"{clean_name}" (case-insensitive) — using the '
+                        f'oldest one (id={skill.id}). Run the dedup cleanup '
+                        f'to fix this permanently.'
+                    )
+            else:
+                skill = Skill.objects.create(skill_name=clean_name.title())
             skill_objects.append(skill)
 
         logger.info(

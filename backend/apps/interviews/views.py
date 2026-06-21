@@ -13,7 +13,7 @@ from .serializers import (
     EvaluationSerializer,
     EvaluationWriteSerializer,
 )
-from apps.accounts.permissions import IsHRManagerOrAdmin
+from apps.accounts.permissions import IsHRManagerOrAdmin, IsInterviewParticipantOrHRManager, IsOwnerOrHRManager
 
 logger = logging.getLogger(__name__)
 
@@ -130,4 +130,14 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         return EvaluationSerializer
 
     def get_permissions(self):
+        """
+        create requires being a participant on the interview (or HR/Admin).
+        update/partial_update/destroy require owning the evaluation (or HR/Admin)
+        — one interviewer can't edit a colleague's evaluation.
+        list/retrieve stay open to any authenticated user.
+        """
+        if self.action == 'create':
+            return [IsAuthenticated(), IsInterviewParticipantOrHRManager()]
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), IsOwnerOrHRManager()]
         return [IsAuthenticated()]

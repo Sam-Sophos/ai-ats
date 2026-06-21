@@ -18,7 +18,7 @@ import CandidatesListPage from './pages/candidates/CandidatesListPage'
 import PipelineBoardPage from './pages/pipeline/PipelineBoardPage'
 import InterviewsPage from './pages/interviews/InterviewsPage'
 import CommunicationsPage from './pages/communications/CommunicationsPage'
-
+import InterviewDetailPage from './pages/interviews/InterviewDetailPage'
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -57,6 +57,8 @@ export default function App() {
           <Route path="pipeline" element={<PipelineBoardPage />} />
 
           <Route path="interviews" element={<InterviewsPage />} />
+          <Route path="interviews" element={<InterviewsPage />} />
+          <Route path="interviews/:id" element={<InterviewDetailPage />} /> 
 
           <Route path="communications" element={<CommunicationsPage />} />
         </Route>
