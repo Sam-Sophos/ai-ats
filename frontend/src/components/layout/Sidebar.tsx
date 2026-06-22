@@ -1,20 +1,19 @@
 import { NavLink } from 'react-router-dom'
 import {
   Briefcase, Users, UserCheck, LayoutDashboard,
-  Calendar, MessageSquare, GitBranch, PlusCircle,
-  Settings, HelpCircle, Zap
+  Calendar, MessageSquare, GitBranch, PlusCircle, Zap
 } from 'lucide-react'
 import { cn } from '../ui'
 import { useAuthStore } from '../../store/authStore'
 
 const navItems = [
-  { to: '/jobs',           label: 'Jobs',           icon: Briefcase     },
-  { to: '/applications',   label: 'Applications',   icon: UserCheck     },
-  { to: '/candidates',     label: 'Candidates',     icon: Users         },
-  { to: '/pipeline',       label: 'Pipeline',       icon: GitBranch     },
-  { to: '/interviews',     label: 'Interviews',     icon: Calendar      },
-  { to: '/communications', label: 'Communications', icon: MessageSquare },
   { to: '/dashboard',      label: 'Dashboard',      icon: LayoutDashboard },
+  { to: '/jobs',           label: 'Jobs',           icon: Briefcase       },
+  { to: '/applications',   label: 'Applications',   icon: UserCheck       },
+  { to: '/candidates',     label: 'Candidates',     icon: Users           },
+  { to: '/pipeline',       label: 'Pipeline',       icon: GitBranch       },
+  { to: '/interviews',     label: 'Interviews',     icon: Calendar        },
+  { to: '/communications', label: 'Communications', icon: MessageSquare   },
 ]
 
 export default function Sidebar() {
@@ -68,18 +67,10 @@ export default function Sidebar() {
             Create New Job
           </NavLink>
         )}
-        <button className="flex items-center gap-3 w-full px-3 py-2 text-blue-200 hover:text-white hover:bg-white/10 rounded-lg text-sm transition-colors">
-          <Settings className="w-4 h-4" />
-          Settings
-        </button>
-        <button className="flex items-center gap-3 w-full px-3 py-2 text-blue-200 hover:text-white hover:bg-white/10 rounded-lg text-sm transition-colors">
-          <HelpCircle className="w-4 h-4" />
-          Support
-        </button>
 
-        {/* User avatar */}
+        {/* User info */}
         {user && (
-          <div className="flex items-center gap-2 px-3 py-2 mt-2">
+          <div className="flex items-center gap-2 px-3 py-2 mt-1">
             <div className="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
               {user.first_name[0]}{user.last_name[0]}
             </div>
