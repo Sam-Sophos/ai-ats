@@ -24,3 +24,6 @@ export interface MessageTemplate { id: number; template_name: string; email_subj
 export interface CommunicationsLog { id: number; application: ApplicationList; sender: User; template: MessageTemplate; sent_date: string; message_content: string }
 export interface PaginatedResponse<T> { count: number; next: string | null; previous: string | null; results: T[] }
 export interface TaskStatusResponse { task_id: string; status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILURE'; result: { application_id?: number; ai_match_score?: number; extracted_skills?: string[]; tokens_used?: number; processing_time_ms?: number; error?: string } | null }
+export interface CandidateRegisterPayload { first_name: string; last_name: string; email: string; phone?: string; password: string }
+export interface CandidateLoginPayload { email: string; password: string }
+export interface CandidateAuthResponse { access: string; refresh: string; candidate: Candidate }
