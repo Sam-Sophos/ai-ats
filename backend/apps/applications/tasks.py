@@ -68,6 +68,21 @@ def process_resume(self, application_id: int):
         # Step 4 & 5 — Match skills and calculate score
         score = match_and_score(application_id, extracted_skills)
 
+        # Step 5b — Save experience and education extracted by AI
+        years_experience = ai_result.get('years_of_experience')
+        education_level = ai_result.get('highest_education')
+        if years_experience is not None or education_level is not None:
+            application.refresh_from_db()
+            if years_experience is not None:
+                application.years_experience = float(years_experience)
+            if education_level:
+                application.education_level = str(education_level)[:255]
+            application.save(update_fields=[
+                f for f in ['years_experience', 'education_level']
+                if (f == 'years_experience' and years_experience is not None)
+                or (f == 'education_level' and education_level)
+            ])
+
         # Step 6 — Create the AI processing log
         with transaction.atomic():
             AIProcessingLog.objects.update_or_create(

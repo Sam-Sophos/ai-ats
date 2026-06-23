@@ -35,6 +35,20 @@ class Application(models.Model):
     )
     applied_date = models.DateTimeField(auto_now_add=True)
     resume_file = models.FileField(upload_to='resumes/')
+
+    # Experience & education — extracted by AI from the resume
+    years_experience = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Years of professional experience extracted from resume by AI."
+    )
+    education_level = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Highest education level extracted from resume by AI."
+    )
+
     extracted_skills = models.ManyToManyField(
         Skill,
         through='ApplicationSkill',
@@ -105,9 +119,7 @@ class ApplicationStatusHistory(models.Model):
     changed_by = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
-        related_name='status_changes',
-        null=True,
-        blank=True,
+        related_name='status_changes'
     )
     date_changed = models.DateTimeField(auto_now_add=True)
 

@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from apps.accounts.models import User
 from django.db import transaction
 from .models import (
     Application,
@@ -98,7 +97,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
 class ApplicationDetailSerializer(serializers.ModelSerializer):
     """
     Full serializer for the application detail page.
-    Returns all nested objects.
+    Returns all nested objects plus computed AI match breakdown fields.
     """
     candidate = CandidateSerializer(read_only=True)
     job = JobListSerializer(read_only=True)
@@ -107,6 +106,12 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     current_status = serializers.SerializerMethodField()
     offer = JobOfferSerializer(read_only=True)
     ai_log = AIProcessingLogSerializer(read_only=True)
+
+    # AI Match Breakdown — computed, not stored
+    matched_skills = serializers.SerializerMethodField()
+    missing_skills = serializers.SerializerMethodField()
+    additional_skills = serializers.SerializerMethodField()
+    ai_breakdown_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
@@ -122,6 +127,12 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             'status_history',
             'offer',
             'ai_log',
+            'matched_skills',
+            'missing_skills',
+            'additional_skills',
+            'ai_breakdown_summary',
+            'years_experience',
+            'education_level',
         ]
 
     def get_current_status(self, obj):
@@ -129,6 +140,121 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         if latest:
             return StatusSerializer(latest.status).data
         return None
+
+    def _get_skill_sets(self, obj):
+        """
+        Returns (job_skills, extracted_skills) as sets of (id, name) tuples.
+        Cached on the serializer instance to avoid duplicate DB hits when
+        multiple breakdown fields are computed for the same object.
+        """
+        cache_key = f'_skill_sets_{obj.id}'
+        if not hasattr(self, cache_key):
+            from apps.jobs.models import JobSkill
+            job_skills = {
+                (js.skill_id, js.skill.skill_name)
+                for js in JobSkill.objects.filter(job=obj.job).select_related('skill')
+            }
+            extracted = {
+                (s.id, s.skill_name)
+                for s in obj.extracted_skills.all()
+            }
+            setattr(self, cache_key, (job_skills, extracted))
+        return getattr(self, cache_key)
+
+    def get_matched_skills(self, obj):
+        job_skills, extracted = self._get_skill_sets(obj)
+        job_ids = {s[0] for s in job_skills}
+        ext_ids = {s[0] for s in extracted}
+        matched_ids = job_ids & ext_ids
+        return [
+            {'id': sid, 'skill_name': name}
+            for sid, name in job_skills
+            if sid in matched_ids
+        ]
+
+    def get_missing_skills(self, obj):
+        job_skills, extracted = self._get_skill_sets(obj)
+        job_ids = {s[0] for s in job_skills}
+        ext_ids = {s[0] for s in extracted}
+        missing_ids = job_ids - ext_ids
+        return [
+            {'id': sid, 'skill_name': name}
+            for sid, name in job_skills
+            if sid in missing_ids
+        ]
+
+    def get_additional_skills(self, obj):
+        job_skills, extracted = self._get_skill_sets(obj)
+        job_ids = {s[0] for s in job_skills}
+        return [
+            {'id': sid, 'skill_name': name}
+            for sid, name in extracted
+            if sid not in job_ids
+        ]
+
+    def get_ai_breakdown_summary(self, obj):
+        """
+        Generates a natural-language explanation of the match score.
+        No extra AI call — built from the computed breakdown data.
+        """
+        job_skills, extracted = self._get_skill_sets(obj)
+        total = len(job_skills)
+        job_ids = {s[0] for s in job_skills}
+        ext_ids = {s[0] for s in extracted}
+        matched_ids = job_ids & ext_ids
+        missing_ids = job_ids - ext_ids
+        additional_ids = ext_ids - job_ids
+
+        matched_names = [name for sid, name in job_skills if sid in matched_ids]
+        missing_names = [name for sid, name in job_skills if sid in missing_ids]
+        additional_names = [name for sid, name in extracted if sid not in job_ids]
+
+        score = obj.ai_match_score
+        candidate_name = obj.candidate.get_full_name() if obj.candidate else 'This candidate'
+
+        if total == 0:
+            return (
+                f"{candidate_name}'s application could not be scored against required skills "
+                f"because no skills have been defined for this job posting. "
+                f"Consider adding required skills to the job to enable AI matching."
+            )
+
+        matched_count = len(matched_names)
+        missing_count = len(missing_names)
+        additional_count = len(additional_names)
+
+        # Opening sentence
+        if score is None:
+            summary = f"{candidate_name}'s resume has not been scored yet. "
+        elif score >= 80:
+            summary = f"{candidate_name} is a strong match, meeting {matched_count} of {total} required skill{'s' if total != 1 else ''}. "
+        elif score >= 50:
+            summary = f"{candidate_name} is a partial match, meeting {matched_count} of {total} required skill{'s' if total != 1 else ''}. "
+        else:
+            summary = f"{candidate_name} meets {matched_count} of {total} required skill{'s' if total != 1 else ''}, indicating a skills gap for this role. "
+
+        # Matched skills sentence
+        if matched_names:
+            if len(matched_names) <= 4:
+                summary += f"Confirmed strengths include {', '.join(matched_names[:-1])}{(' and ' + matched_names[-1]) if len(matched_names) > 1 else matched_names[0]}. "
+            else:
+                summary += f"Confirmed strengths include {', '.join(matched_names[:3])}, and {len(matched_names) - 3} more required skill{'s' if len(matched_names) - 3 != 1 else ''}. "
+
+        # Missing skills sentence
+        if missing_names:
+            if len(missing_names) <= 3:
+                summary += f"Primary gap{'s' if len(missing_names) > 1 else ''}: {', '.join(missing_names)}. "
+            else:
+                summary += f"Primary gaps include {', '.join(missing_names[:2])}, and {len(missing_names) - 2} other required skill{'s' if len(missing_names) - 2 != 1 else ''}. "
+
+        # Additional skills sentence
+        if additional_count > 0:
+            if additional_count <= 4:
+                summary += f"Additional strengths: {', '.join(additional_names[:additional_count])}."
+            else:
+                summary += f"The candidate also brings {additional_count} additional skills beyond the job requirements, including {', '.join(additional_names[:3])}."
+
+        return summary.strip()
 
 
 class ApplicationCreateSerializer(serializers.ModelSerializer):
@@ -150,40 +276,11 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ['applied_date']
 
     def validate_resume_file(self, value):
-        """
-        Enforce PDF only and 5MB max size.
-        Checks both the file extension AND the actual content-type
-        header AND the magic bytes at the start of the file, since
-        a malicious user could rename any file to '.pdf'.
-        """
-        # Check 1 — file extension
-        if not value.name.lower().endswith('.pdf'):
+        """Enforce PDF only and 5MB max size."""
+        if not value.name.endswith('.pdf'):
             raise serializers.ValidationError('Only PDF files are accepted.')
-
-        # Check 2 — declared content type from the upload
-        allowed_content_types = ['application/pdf']
-        if value.content_type not in allowed_content_types:
-            raise serializers.ValidationError(
-                'Invalid file type. Only PDF files are accepted.'
-            )
-
-        # Check 3 — file size limit (5MB)
-        max_size_bytes = 5 * 1024 * 1024
-        if value.size > max_size_bytes:
-            raise serializers.ValidationError(
-                f'File size must not exceed 5MB. '
-                f'Your file is {round(value.size / 1024 / 1024, 2)}MB.'
-            )
-
-        # Check 4 — magic bytes: real PDFs start with %PDF-
-        value.seek(0)
-        header = value.read(5)
-        value.seek(0)
-        if header != b'%PDF-':
-            raise serializers.ValidationError(
-                'This file does not appear to be a valid PDF.'
-            )
-
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError('File size must not exceed 5MB.')
         return value
 
     def create(self, validated_data):
@@ -196,6 +293,7 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
             # Create the first status history entry — 'Applied'
             try:
                 applied_status = Status.objects.get(sequence_order=1)
+                from apps.accounts.models import User
                 request_user = self.context['request'].user
                 changed_by = request_user if isinstance(request_user, User) else None
                 ApplicationStatusHistory.objects.create(

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, FileText, Download, CheckCircle2, XCircle,
-  Sparkles, ChevronDown, ThumbsUp, AlertTriangle, ThumbsDown
+  Sparkles, ChevronDown, ThumbsUp, AlertTriangle, ThumbsDown, GraduationCap
 } from 'lucide-react'
 import { applicationsApi } from '../../api/applications'
 import { jobsApi } from '../../api/jobs'
@@ -65,7 +65,8 @@ interface Recommendation {
 
 function getRecommendation(
   score: number | null,
-  breakdown: { matched: Skill[]; missing: Skill[]; additional: Skill[] } | null
+  breakdown: { matched: Skill[]; missing: Skill[]; additional: Skill[] } | null,
+  yearsExperience: number | null
 ): Recommendation {
   if (score === null) {
     return {
@@ -80,11 +81,16 @@ function getRecommendation(
   const missingRatio = totalRequired > 0 ? missingCount / totalRequired : 0
 
   if (score >= 75 && missingRatio <= 0.25) {
+    const hasGoodExperience = yearsExperience === null || yearsExperience >= 2
     return {
       level: 'recommended',
       label: 'Recommended for Interview',
-      sublabel: 'Strong skill match — candidate covers most requirements.',
-      confidence: 'High',
+      sublabel: hasGoodExperience
+        ? yearsExperience !== null
+          ? `Strong match with ${yearsExperience} years of experience.`
+          : 'Strong skill match — candidate covers most requirements.'
+        : 'Strong skill match, but limited experience — consider junior role.',
+      confidence: hasGoodExperience ? 'High' : 'Medium',
     }
   } else if (score >= 50 && missingRatio <= 0.5) {
     return {
@@ -228,7 +234,7 @@ export default function ApplicationDetailPage() {
     ? generateSummary(breakdown.matched, breakdown.missing, breakdown.additional, application.ai_match_score)
     : null
 
-  const recommendation = getRecommendation(application.ai_match_score, breakdown)
+  const recommendation = getRecommendation(application.ai_match_score, breakdown, application.years_experience ?? null)
   const recStyle = RECOMMENDATION_STYLES[recommendation.level]
   const RecIcon = recStyle.icon
 
@@ -297,6 +303,50 @@ export default function ApplicationDetailPage() {
             </div>
             {resumeError && <p className="text-xs text-red-600 mt-2">{resumeError}</p>}
           </div>
+          {/* Experience & Education */}
+          {(application.years_experience !== null || application.education_level) && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 bg-purple-50 rounded-lg flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4 text-purple-600" />
+                </div>
+                <h2 className="text-sm font-semibold text-gray-900">Experience & Education</h2>
+                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full ml-1">AI extracted</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Experience</p>
+                  {application.years_experience !== null ? (
+                    <>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {application.years_experience}
+                        <span className="text-sm font-normal text-gray-500 ml-1">yrs</span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {application.years_experience >= 7
+                          ? 'Senior level'
+                          : application.years_experience >= 3
+                          ? 'Mid level'
+                          : 'Junior level'}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Not detected</p>
+                  )}
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Education</p>
+                  {application.education_level ? (
+                    <p className="text-sm font-medium text-gray-900 leading-snug">
+                      {application.education_level}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Not detected</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* AI Match Breakdown */}
           {breakdown ? (
