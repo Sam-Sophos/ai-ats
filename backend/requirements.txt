@@ -20,17 +20,7 @@ django-filter==25.2
 djangorestframework==3.17.1
 djangorestframework_simplejwt==5.5.1
 Faker==40.23.0
-google-ai-generativelanguage==0.6.15
-google-api-core==2.31.0
-google-api-python-client==2.197.0
-google-auth==2.53.0
-google-auth-httplib2==0.4.0
-google-genai==2.8.0
-google-generativeai==0.8.6
-googleapis-common-protos==1.75.0
 groq==1.4.0
-grpcio==1.81.1
-grpcio-status==1.81.1
 gunicorn==26.0.0
 h11==0.16.0
 httpcore==1.0.9
@@ -44,8 +34,6 @@ pdfminer.six==20260107
 pillow==12.2.0
 pluggy==1.6.0
 prompt_toolkit==3.0.52
-proto-plus==1.28.0
-protobuf==7.35.1
 psycopg2-binary==2.9.12
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
