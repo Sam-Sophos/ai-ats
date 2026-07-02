@@ -1,7 +1,9 @@
 import axios, { AxiosError } from 'axios'
 
 const candidateAxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL
+    ? `${import.meta.env.VITE_API_BASE_URL}/api`
+    : '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -84,7 +86,7 @@ candidateAxiosInstance.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post('/api/candidate-auth/refresh/', {
+        const { data } = await axios.post(`${import.meta.env.VITE_API_BASE_URL ?? ''}/api/auth/refresh/`, {
           refresh: refreshToken,
         })
         const newAccessToken = data.access
