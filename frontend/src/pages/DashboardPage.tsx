@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Briefcase, FileText, Sparkles, CalendarCheck } from 'lucide-react'
 import { dashboardApi } from '../api/dashboard'
