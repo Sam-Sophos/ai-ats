@@ -1,13 +1,5 @@
 import candidateAxiosInstance from './candidateAxiosInstance'
-import type {
-  Candidate,
-  CandidateLoginPayload,
-  CandidateRegisterPayload,
-  CandidateAuthResponse,
-  ApplicationList,
-  ApplicationDetail,
-  TaskStatusResponse,
-} from '../types'
+import type { Candidate, CandidateLoginPayload, CandidateRegisterPayload, CandidateAuthResponse, ApplicationList, ApplicationDetail, TaskStatusResponse } from '../types'
 
 export const candidateAuthApi = {
   register: (data: CandidateRegisterPayload) =>

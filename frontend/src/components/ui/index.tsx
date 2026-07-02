@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { Loader2, X } from 'lucide-react'
-import { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes } from 'react'
+import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes } from 'react'
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
 export function cn(...inputs: (string | undefined | null | boolean)[]) {
