@@ -20,7 +20,7 @@ Recruiters manage hiring pipelines. Candidates browse jobs, apply, and get AI-sc
 
 <br />
 
-[**Live Demo →**](https://hireflow-ai.vercel.app) &nbsp;·&nbsp; [**API →**](https://ai-ats-fd59.onrender.com/api/) &nbsp;·&nbsp; [**Report Bug**](https://github.com/Sam-Sophos/ai-ats/issues)
+ &nbsp;·&nbsp; [**API →**](https://ai-ats-fd59.onrender.com/api/) &nbsp;·&nbsp; [**Report Bug**](https://github.com/Sam-Sophos/ai-ats/issues)
 
 </div>
 
